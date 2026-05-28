@@ -140,6 +140,24 @@
       .main{padding:1rem}.tb,.pbar,.toolbar,.acct-bar{padding-left:1rem;padding-right:1rem}
       .kc-val{font-size:22px}.upd{display:none}
     }
+    /* ── Rendimiento por creatividad ── */
+    .ads-title-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem;flex-wrap:wrap;gap:6px}
+    .ads-subtitle{font-size:12px;color:var(--text2)}
+    .ads-table-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+    .ads-table{width:100%;border-collapse:collapse;font-size:13px}
+    .ads-table thead th{padding:9px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);background:#F8FAFC;border-bottom:1px solid var(--border)}
+    .ads-row td{padding:10px 14px;border-bottom:1px solid #F1F5F9;vertical-align:middle}
+    .ads-row:last-child td{border-bottom:none}
+    .ads-row:hover td{background:#FAFBFC}
+    .ads-rank-cell{font-size:16px;text-align:center}
+    .ads-thumb-cell{padding:8px 6px 8px 14px}
+    .ads-tbl-thumb{width:44px;height:44px;object-fit:cover;border-radius:7px;display:block}
+    .ads-tbl-ph{width:44px;height:44px;border-radius:7px;background:#E2E8F0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#94A3B8}
+    .ads-name-cell{max-width:260px}
+    .ads-tbl-name{font-weight:600;font-size:13px;margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .ads-bar-wrap{height:4px;background:#E2E8F0;border-radius:2px;overflow:hidden}
+    .ads-bar{height:100%;background:var(--navy);border-radius:2px}
+    .pct-pill{display:inline-block;background:var(--blue-lt);color:var(--blue);font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
   </style>
 </head>
 <body>
@@ -251,7 +269,7 @@ async function loadData(){
 async function loadTopAds(p){
   set({loadingAds:true});
   try{
-    const d=await apiCall("__ACCOUNT__/ads",{fields:"name,creative{thumbnail_url,image_url}",limit:100});
+    const d=await apiCall("__ACCOUNT__/ads",{fields:"name,creative{thumbnail_url,image_url}",limit:200});
     const adList=d.data||[];
     if(!adList.length){set({loadingAds:false,topAds:[]});return;}
     const ins=await apiCall("__ACCOUNT__/insights",{
@@ -263,7 +281,7 @@ async function loadTopAds(p){
     for(const r of (ins.data||[])) insMap[r.ad_id]={leads:extractLeads(r.actions),clicks:parseInt(r.clicks||0),name:r.ad_name};
     const merged=adList
       .map(ad=>({id:ad.id,name:insMap[ad.id]?.name||ad.name,thumb:ad.creative?.thumbnail_url||ad.creative?.image_url||null,leads:insMap[ad.id]?.leads||0,clicks:insMap[ad.id]?.clicks||0}))
-      .filter(a=>a.leads>0).sort((a,b)=>b.leads-a.leads).slice(0,3);
+      .filter(a=>a.leads>0).sort((a,b)=>b.leads-a.leads).slice(0,10);
     set({loadingAds:false,topAds:merged});
   }catch(e){set({loadingAds:false,topAds:[]});}
 }
@@ -412,26 +430,55 @@ ${rTopAds()}`;
 }
 
 function rTopAds(){
-  if(S.loadingAds)return`<div class="ads-loading"><div class="spin"></div><span>Cargando mejores anuncios…</span></div>`;
+  if(S.loadingAds)return`<div class="ads-loading"><div class="spin"></div><span>Cargando rendimiento por creatividad…</span></div>`;
   if(!S.topAds||!S.topAds.length)return"";
-  const ranks=["r1","r2","r3"],medals=["🥇","🥈","🥉"];
+  const medals=["🥇","🥈","🥉"];
+  const totLeads=S.topAds.reduce((a,b)=>a+b.leads,0);
+  const p=buildPeriod(S.periodKey);
   return`
 <div class="ads-section">
-  <div class="ads-title">Top 3 anuncios del período</div>
-  <div class="ads-grid">
-    ${S.topAds.map((ad,i)=>`
-      <div class="ad-card">
-        ${ad.thumb?`<img class="ad-thumb" src="${esc(ad.thumb)}" alt="${esc(ad.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:``}
-        <div class="ad-thumb-ph" style="${ad.thumb?"display:none":""}">Sin img</div>
-        <div class="ad-body">
-          <div class="ad-rank ${ranks[i]}">${medals[i]} Puesto ${i+1}</div>
-          <div class="ad-name">${esc(ad.name)}</div>
-          <div class="ad-stats">
-            <div><div class="ad-stat-lbl">Leads</div><div class="ad-stat-val green">${fn(ad.leads)}</div></div>
-            <div><div class="ad-stat-lbl">Clics</div><div class="ad-stat-val">${fn(ad.clicks)}</div></div>
-          </div>
-        </div>
-      </div>`).join("")}
+  <div class="ads-title-row">
+    <div class="ads-title">Rendimiento por creatividad</div>
+    <div class="ads-subtitle">${S.topAds.length} pieza${S.topAds.length!==1?"s":""} con resultados · ${p.label}</div>
+  </div>
+  <div class="ads-table-wrap">
+    <table class="ads-table">
+      <thead>
+        <tr>
+          <th style="width:44px;text-align:center">#</th>
+          <th style="width:52px"></th>
+          <th>Pieza</th>
+          <th class="r">Leads</th>
+          <th class="r">Participación</th>
+          <th class="r">Clics</th>
+          <th class="r">Conv.</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${S.topAds.map((ad,i)=>{
+          const pct=totLeads>0?((ad.leads/totLeads)*100).toFixed(1)+"%":"—";
+          const conv=ad.clicks>0?((ad.leads/ad.clicks)*100).toFixed(2)+"%":"—";
+          const medal=i<3?medals[i]:String(i+1);
+          const barW=S.topAds[0].leads>0?Math.round((ad.leads/S.topAds[0].leads)*100):0;
+          return\`<tr class="ads-row">
+            <td class="ads-rank-cell">\${medal}</td>
+            <td class="ads-thumb-cell">
+              \${ad.thumb
+                ?\`<img class="ads-tbl-thumb" src="\${esc(ad.thumb)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="ads-tbl-ph" style="display:none">—</div>\`
+                :\`<div class="ads-tbl-ph">—</div>\`}
+            </td>
+            <td class="ads-name-cell">
+              <div class="ads-tbl-name" title="\${esc(ad.name)}">\${esc(ad.name)}</div>
+              <div class="ads-bar-wrap"><div class="ads-bar" style="width:\${barW}%"></div></div>
+            </td>
+            <td class="r td-leads">\${fn(ad.leads)}</td>
+            <td class="r"><span class="pct-pill">\${pct}</span></td>
+            <td class="r td-n">\${fn(ad.clicks)}</td>
+            <td class="r">\${conv}</td>
+          </tr>\`;
+        }).join("")}
+      </tbody>
+    </table>
   </div>
 </div>`;
 }
