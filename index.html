@@ -460,22 +460,19 @@ function rTopAds(){
           const conv=ad.clicks>0?((ad.leads/ad.clicks)*100).toFixed(2)+"%":"—";
           const medal=i<3?medals[i]:String(i+1);
           const barW=S.topAds[0].leads>0?Math.round((ad.leads/S.topAds[0].leads)*100):0;
-          return\`<tr class="ads-row">
-            <td class="ads-rank-cell">\${medal}</td>
-            <td class="ads-thumb-cell">
-              \${ad.thumb
-                ?\`<img class="ads-tbl-thumb" src="\${esc(ad.thumb)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="ads-tbl-ph" style="display:none">—</div>\`
-                :\`<div class="ads-tbl-ph">—</div>\`}
-            </td>
+          const thumb=ad.thumb?`<img class="ads-tbl-thumb" src="${esc(ad.thumb)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="ads-tbl-ph" style="display:none">—</div>`:`<div class="ads-tbl-ph">—</div>`;
+          return `<tr class="ads-row">
+            <td class="ads-rank-cell">${medal}</td>
+            <td class="ads-thumb-cell">${thumb}</td>
             <td class="ads-name-cell">
-              <div class="ads-tbl-name" title="\${esc(ad.name)}">\${esc(ad.name)}</div>
-              <div class="ads-bar-wrap"><div class="ads-bar" style="width:\${barW}%"></div></div>
+              <div class="ads-tbl-name" title="${esc(ad.name)}">${esc(ad.name)}</div>
+              <div class="ads-bar-wrap"><div class="ads-bar" style="width:${barW}%"></div></div>
             </td>
-            <td class="r td-leads">\${fn(ad.leads)}</td>
-            <td class="r"><span class="pct-pill">\${pct}</span></td>
-            <td class="r td-n">\${fn(ad.clicks)}</td>
-            <td class="r">\${conv}</td>
-          </tr>\`;
+            <td class="r td-leads">${fn(ad.leads)}</td>
+            <td class="r"><span class="pct-pill">${pct}</span></td>
+            <td class="r td-n">${fn(ad.clicks)}</td>
+            <td class="r">${conv}</td>
+          </tr>`;
         }).join("")}
       </tbody>
     </table>
